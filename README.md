@@ -1,39 +1,43 @@
-# Private expense tracker
+# Penny — private expense tracker
 
-A small HTTP API for accounts and private USD expense records. It includes real sign-in, ownership checks on every expense query, durable retry protection, field-specific errors, cursor pagination, and a persistent SQLite database. There are no third-party dependencies.
+A responsive web application and HTTP API for accounts and private USD expense records. The homepage provides signup, login, adding expenses, private totals, pagination, deletion with confirmation, and sign-out. It includes real sign-in, ownership checks on every expense query, durable retry protection, field-specific errors, cursor pagination, and a persistent SQLite database. SQLite supports local development; PostgreSQL supports Render Free hosting without a paid disk.
 
 Repository: https://github.com/saikatdas47/expense-tracker
 
-Public deployment URL: pending deployment by the repository owner. This README will be updated after the public service is verified.
+Public deployment URL: https://expense-tracker-i6o1.onrender.com
+
+Open the homepage to use the frontend. A PostgreSQL database must be connected for durable storage on Render Free; the SQLite fallback is disposable on that plan.
 
 ## Run locally
 
 Use Node.js 22.13 or newer (Node.js 24 is recommended):
 
 ```sh
+npm ci
 npm start
 ```
 
 Default URL: `http://localhost:3003`. `PORT` controls the port; `DB_PATH` controls the database file, defaulting to `./data/expenses.db`. Tables and the database directory are created at startup. Run `npm test` to verify authentication, ownership, concurrent retries, restart persistence, validation, pagination, logout, and exact session expiry.
 
-## Deploy as a Render Web Service
+## Deploy for free using only Render
 
-Create a Web Service from this public GitHub repository. Choose **Node**, branch **main**, and leave Root Directory empty.
+Connect this repository to a **Free Web Service**, choose Node and branch main, and leave Root Directory empty.
 
 | Setting | Value |
 | --- | --- |
-| Build Command | `node --version` |
+| Build Command | `npm ci --omit=dev` |
 | Start Command | `npm start` |
 | Health Check Path | `/health` |
 | Environment: NODE_VERSION | `24` |
-| Environment: DB_PATH | `/var/data/expenses.db` |
-| Persistent Disk Mount Path | `/var/data` |
+| Environment: DATABASE_URL | Your Render PostgreSQL **Internal Database URL** |
 
-Render supplies `PORT`; do not set it yourself. No API key, JWT secret, or `.env` file is required: this application uses random opaque sessions rather than JWTs.
+In Render, create **New → Postgres**, choose **Free**, and use the same region as the web service. Copy its Internal Database URL into the web service's DATABASE_URL environment variable. Keep this credential out of Git, screenshots, logs, and chat. Render supplies PORT. Remove the old DB_PATH setting; it is not used when DATABASE_URL is set. No JWT secret or paid disk is required. Existing SQLite accounts do not migrate automatically: sign up again after switching to PostgreSQL.
 
-**Persistent storage is required.** Select an instance type that supports a persistent disk and add one at `/var/data`. This can incur hosting charges; the owner must choose and approve the plan in Render. A free instance without a disk can run a disposable demo with `DB_PATH=./data/expenses.db`, but accounts, sessions, expenses, and retry receipts can disappear on restart or redeploy. It does not provide the durable behavior documented here. Keep one instance using the same persistent database file. Independent SQLite files across replicas do not coordinate.
+**The free PostgreSQL database expires after 30 days.** This is an assessment/demo setup, not indefinite hosting. Render Free web services also spin down after inactivity and can take approximately a minute to wake up. Keep a database export before expiry if you need the demo data later. No paid plan or automatic upgrade is required by this project. See [Render Free documentation](https://render.com/docs/free).
 
-Render provides HTTPS. A Dockerfile is also included for other hosts; mount a persistent volume at `/app/data` when using it.
+If DATABASE_URL is not set, the service falls back to SQLite at `./data/expenses.db`. That makes the frontend immediately usable on an existing free service, but data, accounts, sessions and retry receipts are lost on service restart, spin-down or redeployment. Connecting PostgreSQL is necessary for durable retry behavior on this host.
+
+A Dockerfile is included for other hosts. With PostgreSQL, set DATABASE_URL; with SQLite, mount a persistent local volume at `/app/data`.
 
 ## Data model
 
@@ -58,7 +62,7 @@ SQLite foreign keys are enabled on every connection. Money uses integer cents. E
 | GET | `/expenses/:id` | Return an expense only if owned by the authenticated user |
 | DELETE | `/expenses/:id` | Delete an expense only if owned by the authenticated user |
 | GET | `/health` | Public readiness endpoint |
-| GET | `/` | Public service information and repository link |
+| GET | `/` | Responsive frontend: accounts, private expenses, totals and deletion |
 
 Expense endpoints and logout require `Authorization: Bearer <token>`. Missing, malformed, expired, and revoked credentials return **401** with `WWW-Authenticate: Bearer`. Using another valid user's token does not grant access: detail reads and deletes include `user_id` in their database predicates and return **404** for unowned rows. Lists include only the authenticated user's rows. A caller-supplied `userId` is ignored; ownership comes exclusively from the verified session.
 
@@ -93,9 +97,9 @@ Use returned IDs and cursors rather than assuming the example ID exists. Replace
 
 ## Retry-safe writes
 
-The client sends an `Idempotency-Key` of 1–128 letters, digits, underscores, or hyphens. Keys are scoped to the authenticated user. The server normalizes the title by trimming it and hashes the title plus integer amount. It persists the expense and original response together in one `BEGIN IMMEDIATE` transaction.
+The client sends an `Idempotency-Key` of 1–128 letters, digits, underscores, or hyphens. Keys are scoped to the authenticated user. The server normalizes the title by trimming it and hashes the title plus integer amount. It persists the expense and original response together in one database transaction. SQLite uses BEGIN IMMEDIATE; PostgreSQL locks the authenticated user row with SELECT FOR UPDATE before checking the receipt. Requests for different users remain independent in PostgreSQL.
 
-An identical retry finds the stored receipt and returns it without adding a row. Reusing a key with different title or amount returns **409** naming `Idempotency-Key`; use a new key for a new expense. The receipt survives a crash after commit but before the response, and it coordinates concurrent requests across processes sharing the same database. The key is not expired or reused. Deleting an expense keeps its receipt: a retry returns the original create response and does not recreate the deleted expense. Receipts therefore consume storage over time; this small implementation favors an explicit permanent deduplication guarantee.
+An identical retry finds the stored receipt and returns it without adding a row. Reusing a key with different title or amount returns **409** naming `Idempotency-Key`; use a new key for a new expense. The receipt survives a crash after commit but before the response, and it coordinates concurrent requests across processes sharing the same database, including PostgreSQL across separate hosts. The key is not expired or reused. Deleting an expense keeps its receipt: a retry returns the original create response and does not recreate the deleted expense. Receipts therefore consume storage over time; this small implementation favors an explicit permanent deduplication guarantee.
 
 ## Error interface
 
@@ -125,10 +129,14 @@ The HTTP integration test creates Alice and Bob with distinct sessions. Alice cr
 
 Twenty simultaneous identical create requests are sent to **two separate server processes sharing one isolated database**. Every response must have the same status and body. The test checks one durable receipt, a conflict on changed payload, independently scoped keys, persistence after a process restart, and no recreation after deletion. A separate test injects a clock and proves a session is invalid exactly at expiry. Temporary databases are cleaned up.
 
+PostgreSQL integration tests are included. Set TEST_DATABASE_URL to a local test database and run npm test; the test creates a separate schema, verifies 20 concurrent retries across two processes, private rows and restart persistence, then removes only that schema. This was run successfully against an isolated PostgreSQL 15.18 instance. Without TEST_DATABASE_URL, the PostgreSQL test is explicitly skipped.
+
+Frontend browser checks verified sign-in, invalid decimal input, saving and deleting an expense, updated totals, and layouts at 1280px and 390px with no horizontal overflow. The browser keeps its bearer session and an unconfirmed create key in sessionStorage (per tab), never the password. A failed save can be retried or restored after a refresh using the original key. Different form data receives a new key. DOM text rendering avoids treating expense titles as HTML.
+
 ## Secrets and limits
 
-No deployment secret is required or committed. Runtime database files contain private account data and are excluded from Git, Docker build contexts, and this repository. Passwords and tokens belong only in the client or runtime storage, never the source or logs. Do not use real financial data for the public assessment demo.
+No secret is committed. DATABASE_URL is a database credential and belongs only in the hosting environment. Runtime database files contain private account data and are excluded from Git, Docker build contexts, and this repository. Passwords and tokens belong only in the client or runtime storage, never the source or logs. Do not use real financial data for the public assessment demo.
 
-This focused service has no password reset, email verification, account deletion, UI, payment processing, or multi-host database. Protect the persistent disk, maintain backups, and add those features before treating it as a general-purpose financial product.
+This focused service has no password reset, email verification, account deletion, or payment processing. Maintain database backups and add those features before treating it as a general-purpose financial product.
 
 The linked course lesson was inaccessible through the browsing tool. Implementation follows the supplied brief; the lesson still needs to be read in the signed-in course session.

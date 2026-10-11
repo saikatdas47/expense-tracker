@@ -1,10 +1,10 @@
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 
-export async function startProcess(database) {
+export async function startProcess(database, options = {}) {
   const child = spawn(process.execPath, ['server.js'], {
     cwd: new URL('.', import.meta.url),
-    env: { ...process.env, PORT: '0', DB_PATH: database },
+    env: { ...process.env, PORT: '0', DB_PATH: database, DATABASE_URL: options.databaseUrl || '' },
     stdio: ['ignore', 'pipe', 'pipe']
   });
   const base = await new Promise((resolve, reject) => {

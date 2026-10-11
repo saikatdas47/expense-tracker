@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#342b70">
+  <title>Penny — Your private expense tracker</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="header">
+    <a class="brand" href="/" aria-label="Penny home"><span class="brand-icon">p.</span> penny<span class="brand-dot">.</span></a>
+    <div class="header-right"><span class="privacy-label">Your money. Your space.</span><button id="logout" class="button secondary" hidden>Sign out</button></div>
+  </header>
+  <main>
+    <section id="auth-view" class="auth-layout">
+      <div class="intro">
+        <span class="eyebrow"><span class="tiny-dot"></span> A LITTLE CLARITY, EVERY DAY</span>
+        <h1>Small expenses.<br>Clearer <span>picture.</span></h1>
+        <p class="lead">A quiet place to keep track of what you spend. Add an expense, see your total, and get on with your day.</p>
+        <div class="illustration" aria-hidden="true">
+          <div class="illustration-top"><span>THE LITTLE THINGS ADD UP</span><span>↗</span></div>
+          <div class="illustration-amount">Make room<br>for clarity.</div>
+          <div class="visual-bars"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          <div class="illustration-bottom"><span>Less guesswork.</span><span>More peace of mind.</span></div>
+        </div>
+        <div class="assurances"><span>◉ Private to your account</span><span>↻ No duplicate entries on retry</span></div>
+      </div>
+      <div class="auth-card">
+        <div class="card-topline">YOUR PERSONAL LEDGER</div>
+        <h2 id="auth-heading">Welcome back.</h2>
+        <p id="auth-description" class="muted">Sign in to pick up where you left off.</p>
+        <div class="tabs" aria-label="Account access"><button id="login-tab" class="tab active" type="button" aria-pressed="true">Sign in</button><button id="signup-tab" class="tab" type="button" aria-pressed="false">Create account</button></div>
+        <form id="auth-form">
+          <label for="email">Email address</label>
+          <input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" maxlength="254" required>
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Your password" minlength="8" maxlength="128" required>
+          <p id="password-hint" class="hint" hidden>Use 8–128 characters. Choose a password just for this account.</p>
+          <p id="auth-error" class="message error" role="alert" hidden></p>
+          <button id="auth-submit" class="button primary full" type="submit">Sign in <span>→</span></button>
+        </form>
+        <div class="auth-note">Your entries are visible only to you.<br>We never store your password in plain text.</div>
+      </div>
+    </section>
+
+    <section id="dashboard-view" hidden>
+      <div class="dashboard-heading"><div><span class="eyebrow">YOUR PERSONAL LEDGER</span><h1>Your spending, <span>in view.</span></h1><p class="muted" id="account-email"></p></div><div class="currency-note">All amounts in <strong>USD</strong></div></div>
+      <div class="stat-grid"><div class="stat-card total-card"><span>Total tracked</span><strong id="total-amount">$0.00</strong><small>Across all your saved expenses</small></div><div class="stat-card"><span>Expenses recorded</span><strong id="total-count">0</strong><small>One entry at a time</small></div><div class="stat-card note-card"><span class="note-mark">↻</span><strong>Once is enough.</strong><small>Retrying a save won't create a duplicate.</small></div></div>
+      <div class="dashboard-grid">
+        <aside class="expense-card"><span class="card-topline">KEEP IT SIMPLE</span><h2>Add an expense</h2><p class="muted">What did you spend on?</p><form id="expense-form"><label for="title">Description</label><input id="title" name="title" placeholder="Coffee, groceries, lunch…" maxlength="200" required><label for="amount">Amount (USD)</label><div class="amount-input"><span>$</span><input id="amount" name="amount" type="text" inputmode="decimal" placeholder="0.00" required></div><p class="hint">Enter an amount greater than zero, up to $1,000,000.</p><p id="expense-error" class="message error" role="alert" hidden></p><button id="save-expense" class="button primary full" type="submit">Save expense <span>+</span></button></form><p class="save-note">A little habit. A clearer picture.</p></aside>
+        <section class="list-card"><div class="list-heading"><div><h2>Recent expenses</h2><p class="muted">The details behind your total.</p></div><button id="refresh" class="button secondary" type="button">Refresh</button></div><p id="list-error" class="message error" role="alert" hidden></p><div id="empty-state" class="empty-state"><span class="empty-icon">↗</span><h3>A fresh start.</h3><p>Your first expense goes here.<br>Add one using the form to get started.</p></div><div id="expense-list" class="expense-list"></div><button id="load-more" class="button secondary full load-more" hidden>Load more expenses</button></section>
+      </div>
+    </section>
+    <p id="notice" class="toast" role="status" hidden></p>
+  </main>
+  <footer><span>penny. <span class="footer-muted">A little more clarity.</span></span><a href="https://github.com/saikatdas47/expense-tracker" target="_blank" rel="noopener noreferrer">View the project ↗</a></footer>
+</body>
+</html>

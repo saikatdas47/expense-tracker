@@ -25,6 +25,13 @@ test('private rows, durable concurrent idempotency, validation, login and logout
     services.push(await startProcess(path));
     services.push(await startProcess(path));
     const base = services[0].base;
+    const page = await fetch(base + '/');
+    assert.equal(page.status, 200);
+    assert.ok(page.headers.get('content-type').includes('text/html'));
+    assert.ok(page.headers.get('content-security-policy').includes("script-src 'self'"));
+    assert.ok((await page.text()).includes('Penny'));
+    assert.equal((await fetch(base + '/app.js')).status, 200);
+    assert.equal((await fetch(base + '/styles.css')).status, 200);
     assert.equal((await request(base, '/expenses')).status, 401);
     assert.equal((await request(base, '/expenses', 'POST', undefined, {})).status, 401);
     assert.equal((await request(base, '/expenses/1', 'GET')).status, 401);
@@ -92,7 +99,7 @@ test('private rows, durable concurrent idempotency, validation, login and logout
 
 test('session expires exactly at its expiry time', async () => {
   let now = 1800000000000;
-  const server = createService(':memory:', { now: () => now });
+  const server = await createService(':memory:', { now: () => now });
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
   const base = `http://127.0.0.1:${server.address().port}`;
