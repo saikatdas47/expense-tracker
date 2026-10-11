@@ -10,14 +10,38 @@ Open the homepage to use the frontend. The Render service has DATABASE_URL confi
 
 ## Run locally
 
-Use Node.js 22.13 or newer (Node.js 24 is recommended):
+Prerequisites: **Node.js 24.x**, its bundled **npm 11.x**, Git, and curl. No database account or environment variables are needed for the local SQLite setup. A clean checkout needs internet access for `npm ci`.
 
 ```sh
+git clone https://github.com/saikatdas47/expense-tracker.git
+cd expense-tracker
 npm ci
 npm start
 ```
 
+Leave that terminal running. In a second terminal:
+
+```sh
+curl -i http://localhost:3003/health
+```
+
+Expected: **200 OK**, with `{"ok":true,"database":"sqlite"}`. Open `http://localhost:3003/` to register and use the frontend. A blank database is created automatically; no seed or migration command is needed. For a first write, use the signup and expense examples below. An existing demo email returns 409; choose another email or sign in instead.
+
 Default URL: `http://localhost:3003`. `PORT` controls the port; `DB_PATH` controls the database file, defaulting to `./data/expenses.db`. Tables and the database directory are created at startup. Run `npm test` to verify authentication, ownership, concurrent retries, restart persistence, validation, pagination, logout, and exact session expiry.
+
+## Environment variables
+
+The application reads the process environment; it does **not** automatically load a `.env` file. Export variables in your terminal or set them in your hosting dashboard. Never commit credential values.
+
+| Variable | Source / example | Required? Can startup proceed without it? |
+| --- | --- | --- |
+| `PORT` | Render supplies it; locally choose an unused port, e.g. `3003` | Optional; defaults to `3003`. Integer 0–65535; 0 selects a random port. Invalid values stop startup. |
+| `DB_PATH` | Choose a writable local filename, e.g. `./data/expenses.db` | Optional; defaults to that filename. Ignored when DATABASE_URL is set. Unwritable paths stop SQLite startup. |
+| `DATABASE_URL` | Render Postgres dashboard → Internal Database URL; locally a PostgreSQL connection URL you administer | Optional for startup using SQLite; required for durable storage on Render Free. A supplied URL must connect successfully or startup fails. |
+| `NODE_VERSION` | Set `24` in Render's dashboard | Hosting runtime selection only; the app does not read it. Locally install Node 24.x yourself. |
+| `TEST_DATABASE_URL` | Connection URL for a disposable PostgreSQL test database; tested with PostgreSQL 15.18 | Tests only; optional. Startup is unaffected. Without it, the PostgreSQL test is skipped. The test database user needs permission to create/drop an isolated schema. |
+
+For example, `PORT=3004 DB_PATH=./data/demo.db npm start` uses another local port and database. No JWT secret, SMTP credential, or external cache is needed.
 
 ## Deploy for free using only Render
 
@@ -52,17 +76,25 @@ SQLite foreign keys are enabled on every connection; PostgreSQL enforces them th
 
 ## API
 
-| Method | Endpoint | Behavior |
-| --- | --- | --- |
-| POST | `/auth/signup` | Register with email and password; return user, token and expiresAt; 201 |
-| POST | `/auth/login` | Sign in with email and password; return a new session; 200 |
-| POST | `/auth/logout` | Revoke the current bearer token; 200 |
-| GET | `/expenses?limit=20&before=123` | Return own expenses newest first, with items and nextCursor |
-| POST | `/expenses` | Create an expense with required `Idempotency-Key`; 201 on first call and replay |
-| GET | `/expenses/:id` | Return an expense only if owned by the authenticated user |
-| DELETE | `/expenses/:id` | Delete an expense only if owned by the authenticated user |
-| GET | `/health` | Public readiness endpoint |
-| GET | `/` | Responsive frontend: accounts, private expenses, totals and deletion |
+All JSON request examples use `Content-Type: application/json`. Authenticated requests use `Authorization: Bearer <token>`. Every endpoint can return **500** for an unexpected internal failure, with the diagnostic error shape below.
+
+| Method / path | Input | Success output | Other statuses |
+| --- | --- | --- | --- |
+| POST `/auth/signup` | JSON `{email,password}` | **201** `{user:{id,email},token,expiresAt}` | **400** body/email/password invalid; **409** email already registered; **429** authentication rate limit |
+| POST `/auth/login` | JSON `{email,password}` | **200** same session shape as signup | **400** input invalid; **401** credentials incorrect; **429** authentication rate limit |
+| POST `/auth/logout` | Bearer token; no body required | **200** `{ok:true}`; session revoked | **401** token invalid |
+| GET `/expenses` | Bearer token; optional `limit` (1–100, default 20), `before` (positive integer cursor) | **200** `{items:[expense],nextCursor,summary:{count,totalCents}}` | **400** query invalid; **401** token invalid |
+| POST `/expenses` | Bearer token, `Idempotency-Key`; JSON `{title,amountCents}` | **201** `{expense}`; identical status and body on replay | **400** body/title/amount/key invalid; **401** token invalid; **409** same key with different data |
+| GET `/expenses/:id` | Bearer token; positive integer id | **200** `{expense}` | **400** id invalid; **401** token invalid; **404** missing or unowned expense |
+| DELETE `/expenses/:id` | Bearer token; positive integer id; no body required | **200** `{ok:true}` | **400** id invalid; **401** token invalid; **404** missing or unowned expense |
+| GET `/health` | None | **200** `{ok:true,database:"sqlite"}` or `"postgres"` | No input validation; readiness is established at startup, not a fresh database probe per request |
+| GET `/` | None | **200** HTML frontend | No request body |
+| GET `/styles.css` | None | **200** CSS text | No request body |
+| GET `/app.js` | None | **200** JavaScript text | No request body |
+
+An `expense` contains `id`, `title`, `amountCents`, and `createdAt` (UTC ISO timestamp). IDs are numbers; amounts are integer USD cents. `summary` covers all this user's saved expenses, not just the current page. `nextCursor` is the last returned ID when another page exists, otherwise null. Use it as `before` for the next request. `expiresAt` is a Unix timestamp in milliseconds; the token is valid only before it.
+
+Unknown routes return **404**. Unsupported methods on `/expenses`, `/expenses/:id` and `/auth/logout` return **405** after authentication (or **401** without valid credentials). Unsupported methods on public/auth routes fall through to **404**, rather than 405. The service does not use 403 for ownership failures: it returns 404 to avoid revealing whether another user's row exists.
 
 Expense endpoints and logout require `Authorization: Bearer <token>`. Missing, malformed, expired, and revoked credentials return **401** with `WWW-Authenticate: Bearer`. Using another valid user's token does not grant access: detail reads and deletes include `user_id` in their database predicates and return **404** for unowned rows. Lists include only the authenticated user's rows. A caller-supplied `userId` is ignored; ownership comes exclusively from the verified session.
 
@@ -170,3 +202,24 @@ The dashboard shows the total, expense count, new-expense form, and saved entrie
 The same dashboard at a 390px mobile viewport.
 
 <img src="docs/screenshots/mobile-dashboard.jpg" alt="Penny responsive mobile dashboard" width="390">
+
+## Decisions to revisit at ten times the traffic
+
+- **Per-process authentication limiter:** use a shared limiter or gateway policy so limits remain consistent across instances; establish trusted proxy handling before using client-IP headers.
+- **SQLite and write locking:** local SQLite serializes writes. Use the existing PostgreSQL adapter for multiple hosts, measure pool contention, and tune connection limits. PostgreSQL currently serializes creates for each user using a row lock, including different keys.
+- **Totals on every list:** `COUNT` and `SUM` scan an account's expenses. Measure query plans and latency, then consider transactional summary counters as large accounts grow; retain the cursor index and bounded pages.
+- **Permanent retry receipts and expired sessions:** introduce retention/cleanup only with an explicit retry contract, since deleting receipts changes the permanent deduplication guarantee.
+- **Caching:** keep authenticated responses private and uncached. Consider versioned frontend assets and public static caching before adding a cache to private expense data.
+- **Operations:** add database backups, migration tooling, load tests and aggregate latency/error monitoring; current tests prove behavior, not a tenfold production capacity claim.
+
+## Limits and known issues
+
+- No password reset, email verification, account deletion, expense editing, multiple currencies, or payment processing. Amounts are USD cents only.
+- The free demo database was listed to expire on **November 10, 2026** when checked on October 11. Availability after expiry is not guaranteed. Free hosting may sleep and delay the first request.
+- SQLite on an ephemeral host loses data on restart; it is suitable locally, not for durable Render Free storage. Switching databases does not migrate existing accounts.
+- `/health` reports the selected backend but does not check database connectivity on every request. A later outage may leave health green while expense requests fail.
+- Authentication throttling is local to one process and may group users behind a proxy. There is no shared global rate limit.
+- Sessions and retry receipts have no scheduled cleanup; storage can grow. Deleting an expense does not delete its original retry response.
+- Browser sessions use sessionStorage and are per tab. Closing a tab requires signing in again. A lost connection after a write must be retried with the same key.
+- Recreating the GitHub repository preserved its URL, but the Render source integration may need reconnection for future automatic deployments; the deployed service was reachable after recreation.
+- No unresolved functional failure was found in the recorded acceptance checks. Those checks do not establish accessibility certification, production load capacity, or indefinite hosting availability.
