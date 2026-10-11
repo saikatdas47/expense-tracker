@@ -194,6 +194,7 @@ export async function createService(path = ':memory:', options = {}) {
         if (!row) return respond(res, 404, { error: 'not_found', message: 'Expense was not found' });
         return respond(res, 200, req.method === 'GET' ? { expense: publicExpense(row) } : { ok: true });
       }
+      res.setHeader('Allow', route === '/expenses' ? 'GET, POST' : route === '/auth/logout' ? 'POST' : 'GET, DELETE');
       return respond(res, 405, { error: 'method_not_allowed', message: 'Use a documented method for this route' });
     } catch (error) {
       const id = randomUUID();
