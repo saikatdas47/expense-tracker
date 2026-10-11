@@ -1,6 +1,6 @@
 # Penny — private expense tracker
 
-A responsive web application and HTTP API for accounts and private USD expense records. The homepage provides signup, login, adding expenses, private totals, pagination, deletion with confirmation, and sign-out. It includes real sign-in, ownership checks on every expense query, durable retry protection, field-specific errors, cursor pagination, and a persistent SQLite database. SQLite supports local development; PostgreSQL supports Render Free hosting without a paid disk.
+A responsive web application and HTTP API for accounts and private USD expense records. The homepage provides signup, login, adding expenses, private totals, pagination, deletion with confirmation, and sign-out. It includes real sign-in, ownership checks on every expense query, durable retry protection, field-specific errors, cursor pagination, and persistent database storage. SQLite supports local development; PostgreSQL supports Render Free hosting without a paid disk.
 
 Repository: https://github.com/saikatdas47/expense-tracker
 
@@ -48,7 +48,7 @@ A Dockerfile is included for other hosts. With PostgreSQL, set DATABASE_URL; wit
 | expenses | User foreign key, title, positive integer amount in cents, creation time |
 | idempotency | Composite primary key `(user_id, key)`, normalized request hash, original response JSON |
 
-SQLite foreign keys are enabled on every connection. Money uses integer cents. Each expense belongs to exactly one account. The `(user_id, id DESC)` index supports private cursor-paginated lists.
+SQLite foreign keys are enabled on every connection; PostgreSQL enforces them through the schema constraints. Money uses integer cents. Each expense belongs to exactly one account. The `(user_id, id DESC)` index supports private cursor-paginated lists.
 
 ## API
 
@@ -140,3 +140,7 @@ No secret is committed. DATABASE_URL is a database credential and belongs only i
 This focused service has no password reset, email verification, account deletion, or payment processing. Maintain database backups and add those features before treating it as a general-purpose financial product.
 
 The linked course lesson was inaccessible through the browsing tool. Implementation follows the supplied brief; the lesson still needs to be read in the signed-in course session.
+
+## Public verification
+
+On 2026-10-11, the public Render homepage served the frontend successfully. Live checks confirmed 401 without credentials, 400 for malformed JSON and invalid expense fields, five concurrent identical requests returning one expense and identical 201 responses, 404 when another account tried to read or delete that expense, and 409 for changed data under the same key. The disposable expense was deleted and test sessions revoked. See public-verification.json. The live database provider and restart persistence were not confirmed; configure DATABASE_URL before relying on durable data on Render Free.

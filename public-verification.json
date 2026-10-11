@@ -1,0 +1,16 @@
+{
+  "url": "https://expense-tracker-i6o1.onrender.com",
+  "checkedAt": "2026-10-11T08:15:56.011Z",
+  "health": 200,
+  "frontend": "HTML homepage deployed",
+  "unauthenticated": 401,
+  "malformedJson": 400,
+  "invalidExpense": 400,
+  "concurrentIdenticalCreates": 5,
+  "result": "same 201 response, one expense",
+  "otherUserRead": 404,
+  "otherUserDelete": 404,
+  "changedRetry": 409,
+  "cleanup": "test expense deleted and test sessions revoked",
+  "storage": "Live database provider and restart persistence are not confirmed; DATABASE_URL configuration is still required on Render Free if SQLite is in use"
+}

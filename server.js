@@ -65,8 +65,8 @@ export async function createService(path = ':memory:', options = {}) {
     logout: db.prepare('DELETE FROM sessions WHERE token_hash = ?'),
     summary: db.prepare('SELECT COUNT(*) AS count, COALESCE(SUM(amount_cents), 0) AS total FROM expenses WHERE user_id = ?'),
     list: db.prepare('SELECT * FROM expenses WHERE user_id = ? AND id < CAST(? AS BIGINT) ORDER BY id DESC LIMIT ?'),
-    detail: db.prepare('SELECT * FROM expenses WHERE user_id = ? AND id = ?'),
-    remove: db.prepare('DELETE FROM expenses WHERE user_id = ? AND id = ? RETURNING id')
+    detail: db.prepare('SELECT * FROM expenses WHERE user_id = ? AND id = CAST(? AS BIGINT)'),
+    remove: db.prepare('DELETE FROM expenses WHERE user_id = ? AND id = CAST(? AS BIGINT) RETURNING id')
   };
   async function newSession(user) {
     const token = randomBytes(32).toString('base64url');

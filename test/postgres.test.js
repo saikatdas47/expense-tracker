@@ -27,6 +27,8 @@ test('PostgreSQL: account isolation, cross-process retries and persistent receip
     const bob = await request(base, '/auth/signup', 'POST', undefined, { email: 'bob@example.test', password: 'postgres-test-bob' });
     assert.equal(alice.status, 201); assert.equal(bob.status, 201);
     const token = alice.body.token;
+    assert.equal((await request(base, '/expenses/9007199254740991', 'GET', token)).status, 404);
+    assert.equal((await request(base, '/expenses/9007199254740991', 'DELETE', token)).status, 404);
     const responses = await Promise.all(Array.from({ length: 20 }, (_, i) => request(services[i % 2].base, '/expenses', 'POST', token, { title: 'Coffee', amountCents: 450 }, 'coffee-1')));
     for (const response of responses) { assert.equal(response.status, 201); assert.deepEqual(response.body, responses[0].body); }
     assert.equal(Number((await pool.query(`SELECT COUNT(*) AS n FROM ${schema}.expenses`)).rows[0].n), 1);
