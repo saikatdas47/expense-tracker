@@ -92,7 +92,7 @@ All JSON request examples use `Content-Type: application/json`. Authenticated re
 | GET `/styles.css` | None | **200** CSS text | No request body |
 | GET `/app.js` | None | **200** JavaScript text | No request body |
 
-An `expense` contains `id`, `title`, `amountCents`, and `createdAt` (UTC ISO timestamp). IDs are numbers; amounts are integer USD cents. `summary` covers all this user's saved expenses, not just the current page. `nextCursor` is the last returned ID when another page exists, otherwise null. Use it as `before` for the next request. `expiresAt` is a Unix timestamp in milliseconds; the token is valid only before it.
+An `expense` contains `id`, `title`, `amountCents`, `currency` (always `"USD"`), and `createdAt` (UTC ISO timestamp). IDs are numbers; amounts are integer USD cents. `summary` covers all this user's saved expenses, not just the current page. `nextCursor` is the last returned ID when another page exists, otherwise null. Use it as `before` for the next request. `expiresAt` is a Unix timestamp in milliseconds; the token is valid only before it.
 
 Unknown routes return **404**. Unsupported methods on `/expenses`, `/expenses/:id` and `/auth/logout` return **405** after authentication (or **401** without valid credentials). Unsupported methods on public/auth routes fall through to **404**, rather than 405. The service does not use 403 for ownership failures: it returns 404 to avoid revealing whether another user's row exists.
 
