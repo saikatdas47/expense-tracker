@@ -1,6 +1,6 @@
 {
   "url": "https://expense-tracker-88pa.onrender.com",
-  "checkedAt": "2026-10-11T08:27:55.636Z",
+  "checkedAt": "2026-10-11T08:32:08.596Z",
   "health": 200,
   "frontend": "HTML homepage deployed",
   "unauthenticated": 401,
@@ -12,5 +12,6 @@
   "otherUserDelete": 404,
   "changedRetry": 409,
   "cleanup": "test expense deleted and test sessions revoked",
-  "storage": "Live database provider and restart persistence are not confirmed; DATABASE_URL configuration is still required on Render Free if SQLite is in use"
+  "storage": "PostgreSQL confirmed by live health endpoint; original session, expense and idempotency response verified after service redeployment",
+  "restartPersistence": true
 }

@@ -143,8 +143,10 @@ The linked course lesson was inaccessible through the browsing tool. Implementat
 
 ## Public verification
 
-On 2026-10-11, the public Render homepage served the frontend successfully. Live checks confirmed 401 without credentials, 400 for malformed JSON and invalid expense fields, five concurrent identical requests returning one expense and identical 201 responses, 404 when another account tried to read or delete that expense, and 409 for changed data under the same key. The disposable expense was deleted and test sessions revoked. See public-verification.json. The live database provider and restart persistence were not confirmed; configure DATABASE_URL before relying on durable data on Render Free.
+On 2026-10-11, the public Render homepage served the frontend successfully. Live checks confirmed 401 without credentials, 400 for malformed JSON and invalid expense fields, five concurrent identical requests returning one expense and identical 201 responses, 404 when another account tried to read or delete that expense, and 409 for changed data under the same key. The disposable expense was deleted and test sessions revoked. See public-verification.json. The new deployment was verified to use PostgreSQL. A disposable session, expense, and original idempotency response created before redeployment remained usable afterward; the test expense was then deleted and its session revoked.
 
 ## Frontend loading fix
 
 The homepage delivers its stylesheet and interaction code directly in the HTML response, so a failed separate asset request during startup cannot leave the app unstyled. A new random nonce in the Content Security Policy allows only the bundled style and script for that response; unsafe-inline is not enabled. The /styles.css and /app.js endpoints remain available for inspection. Render's health check is /health, which also identifies the storage backend without exposing credentials.
+
+Final verification in the owner’s Safari session confirmed the styled homepage and working sign-in/create-account tabs. The Render dashboard confirms a Free web service, a Free PostgreSQL database, and the /health deployment check. No paid disk or plan was added.
