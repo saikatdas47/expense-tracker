@@ -1,10 +1,10 @@
+**[Open the live demo →](https://expense-tracker-88pa.onrender.com/)**
+
 # Penny — private expense tracker
 
 A responsive web application and HTTP API for accounts and private USD expense records. The homepage provides signup, login, adding expenses, private totals, pagination, deletion with confirmation, and sign-out. It includes real sign-in, ownership checks on every expense query, durable retry protection, field-specific errors, cursor pagination, and persistent database storage. SQLite supports local development; PostgreSQL supports Render Free hosting without a paid disk.
 
 Repository: https://github.com/saikatdas47/expense-tracker
-
-Public deployment URL: https://expense-tracker-88pa.onrender.com
 
 Open the homepage to use the frontend. The Render service has DATABASE_URL configured and uses a free Render PostgreSQL database in the same Oregon region. The database dashboard lists expiry as November 10, 2026. The SQLite fallback is disposable on Render Free.
 
@@ -150,3 +150,23 @@ On 2026-10-11, the public Render homepage served the frontend successfully. Live
 The homepage delivers its stylesheet and interaction code directly in the HTML response, so a failed separate asset request during startup cannot leave the app unstyled. A new random nonce in the Content Security Policy allows only the bundled style and script for that response; unsafe-inline is not enabled. The /styles.css and /app.js endpoints remain available for inspection. Render's health check is /health, which also identifies the storage backend without exposing credentials.
 
 Final verification in the owner’s Safari session confirmed the styled homepage and working sign-in/create-account tabs. The Render dashboard confirms a Free web service, a Free PostgreSQL database, and the /health deployment check. No paid disk or plan was added.
+
+## Screenshots
+
+Captured from the public Render deployment on October 11, 2026. The dashboard uses a synthetic demonstration account and five sample expenses, not personal financial data.
+
+### Desktop sign-in
+
+![Penny desktop sign-in page](docs/screenshots/desktop-sign-in.jpg)
+
+### Desktop expense dashboard
+
+The dashboard shows the total, expense count, new-expense form, and saved entries.
+
+![Penny desktop expense dashboard with five sample expenses](docs/screenshots/desktop-dashboard.jpg)
+
+### Mobile expense dashboard
+
+The same dashboard at a 390px mobile viewport.
+
+<img src="docs/screenshots/mobile-dashboard.jpg" alt="Penny responsive mobile dashboard" width="390">
