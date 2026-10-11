@@ -55,6 +55,11 @@ test('private rows, durable concurrent idempotency, validation, login and logout
     assert.equal((await request(base, '/auth/login', 'POST', undefined, { email: 'alice@example.test', password: 'incorrect-password' })).status, 401);
     assert.equal((await request(base, '/auth/login', 'POST', undefined, { email: 'missing@example.test', password: 'incorrect-password' })).status, 401);
     assert.equal((await request(base, '/auth/login', 'POST', undefined, { email: 'alice@example.test', password: 'test-password-alice' })).status, 200);
+    for (const [route, allowed] of [['/expenses', 'GET, POST'], ['/expenses/1', 'GET, DELETE'], ['/auth/logout', 'POST']]) {
+      const unsupported = await request(base, route, 'PUT', a);
+      assert.equal(unsupported.status, 405);
+      assert.equal(unsupported.headers.get('Allow'), allowed);
+    }
     const invalid = await request(base, '/expenses', 'POST', a, { title: '', amountCents: 0 });
     assert.equal(invalid.status, 400);
     assert.ok(invalid.body.fields.title && invalid.body.fields.amountCents && invalid.body.fields['Idempotency-Key']);
