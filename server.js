@@ -55,6 +55,9 @@ function publicExpense(row) {
 
 export async function createService(path = ':memory:', options = {}) {
   const now = options.now || Date.now;
+  const template = readFileSync(new URL('./public/index.html', import.meta.url), 'utf8');
+  const stylesheet = readFileSync(new URL('./public/styles.css', import.meta.url), 'utf8');
+  const frontend = readFileSync(new URL('./public/app.js', import.meta.url), 'utf8');
   const db = await openStorage(path, options.databaseUrl);
   const sql = {
     user: db.prepare('SELECT * FROM users WHERE email = ?'),
@@ -98,10 +101,17 @@ export async function createService(path = ':memory:', options = {}) {
       if (req.method === 'GET' && ['/', '/app.js', '/styles.css'].includes(route)) {
         const file = route === '/' ? 'index.html' : route.slice(1);
         const type = file.endsWith('.html') ? 'text/html; charset=utf-8' : file.endsWith('.js') ? 'text/javascript; charset=utf-8' : 'text/css; charset=utf-8';
-        res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" });
-        return res.end(readFileSync(new URL('./public/' + file, import.meta.url)));
+        const nonce = randomBytes(16).toString('base64');
+        res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': `default-src 'self'; script-src 'self' 'nonce-${nonce}'; style-src 'self' 'nonce-${nonce}'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'` });
+        if (route !== '/') return res.end(route === '/app.js' ? frontend : stylesheet);
+        // Deliver design and interactions with the page, avoiding separate asset failures on wake-up.
+        const page = template
+          .replace('<link rel="stylesheet" href="/styles.css">', () => `<style nonce="${nonce}">${stylesheet}</style>`)
+          .replace('<script src="/app.js" defer></script>', '')
+          .replace('</body>', () => `<script nonce="${nonce}">${frontend}</script></body>`);
+        return res.end(page);
       }
-      if (req.method === 'GET' && route === '/health') return respond(res, 200, { ok: true });
+      if (req.method === 'GET' && route === '/health') return respond(res, 200, { ok: true, database: options.databaseUrl ? 'postgres' : 'sqlite' });
       if (req.method === 'POST' && (route === '/auth/signup' || route === '/auth/login')) {
         if (!authAllowed(req, res)) return;
         let input;

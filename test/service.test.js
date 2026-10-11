@@ -29,7 +29,14 @@ test('private rows, durable concurrent idempotency, validation, login and logout
     assert.equal(page.status, 200);
     assert.ok(page.headers.get('content-type').includes('text/html'));
     assert.ok(page.headers.get('content-security-policy').includes("script-src 'self'"));
-    assert.ok((await page.text()).includes('Penny'));
+    const html = await page.text();
+    assert.ok(html.includes('Penny'));
+    const nonce = page.headers.get('content-security-policy').match(/nonce-([^']+)/)[1];
+    assert.ok(html.includes(`<style nonce="${nonce}">`));
+    assert.ok(html.includes(`<script nonce="${nonce}">`));
+    assert.equal(html.includes('href="/styles.css"'), false);
+    assert.equal(html.includes('src="/app.js"'), false);
+    assert.equal(page.headers.get('content-security-policy').includes('unsafe-inline'), false);
     assert.equal((await fetch(base + '/app.js')).status, 200);
     assert.equal((await fetch(base + '/styles.css')).status, 200);
     assert.equal((await request(base, '/expenses')).status, 401);

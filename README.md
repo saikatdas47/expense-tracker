@@ -4,9 +4,9 @@ A responsive web application and HTTP API for accounts and private USD expense r
 
 Repository: https://github.com/saikatdas47/expense-tracker
 
-Public deployment URL: https://expense-tracker-i6o1.onrender.com
+Public deployment URL: https://expense-tracker-88pa.onrender.com
 
-Open the homepage to use the frontend. A PostgreSQL database must be connected for durable storage on Render Free; the SQLite fallback is disposable on that plan.
+Open the homepage to use the frontend. The Render service has DATABASE_URL configured and uses a free Render PostgreSQL database in the same Oregon region. The database dashboard lists expiry as November 10, 2026. The SQLite fallback is disposable on Render Free.
 
 ## Run locally
 
@@ -144,3 +144,7 @@ The linked course lesson was inaccessible through the browsing tool. Implementat
 ## Public verification
 
 On 2026-10-11, the public Render homepage served the frontend successfully. Live checks confirmed 401 without credentials, 400 for malformed JSON and invalid expense fields, five concurrent identical requests returning one expense and identical 201 responses, 404 when another account tried to read or delete that expense, and 409 for changed data under the same key. The disposable expense was deleted and test sessions revoked. See public-verification.json. The live database provider and restart persistence were not confirmed; configure DATABASE_URL before relying on durable data on Render Free.
+
+## Frontend loading fix
+
+The homepage delivers its stylesheet and interaction code directly in the HTML response, so a failed separate asset request during startup cannot leave the app unstyled. A new random nonce in the Content Security Policy allows only the bundled style and script for that response; unsafe-inline is not enabled. The /styles.css and /app.js endpoints remain available for inspection. Render's health check is /health, which also identifies the storage backend without exposing credentials.
