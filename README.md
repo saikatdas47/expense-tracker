@@ -212,6 +212,11 @@ The same dashboard at a 390px mobile viewport.
 - **Caching:** keep authenticated responses private and uncached. Consider versioned frontend assets and public static caching before adding a cache to private expense data.
 - **Operations:** add database backups, migration tooling, load tests and aggregate latency/error monitoring; current tests prove behavior, not a tenfold production capacity claim.
 
+## Automated test checks
+
+The **Backend tests** GitHub Actions workflow runs on pull requests and pushes to main using Node.js 24 and a disposable PostgreSQL 15 service. It runs `npm ci` and `npm test`, including SQLite tests and the PostgreSQL ownership, concurrency and persistence test. Its database credentials exist only on the temporary runner and are not deployment secrets. A failing test makes the check fail; branch protection must be configured separately if merges should be blocked automatically.
+
+
 ## Limits and known issues
 
 - No password reset, email verification, account deletion, expense editing, multiple currencies, or payment processing. Amounts are USD cents only.
